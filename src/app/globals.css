@@ -1,25 +1,28 @@
 @import "tailwindcss";
 
 /*
- * As fitness — tasarım token'ları
+ * As Fitness — tasarım token'ları
  * --------------------------------
- * Vurgu rengini logoya göre tek satırdan değiştir: --color-neon
- * (asit yeşili için örn. #c6ff1a). 3D sahne de rengi buradan okur.
+ * Palet: zifiri siyah, koyu antrasit ve kan kırmızısı. Mavi hiçbir yerde yok — tarayıcının
+ * kendi mavileri (autofill, dokunma vurgusu, form kontrolleri) de aşağıda bastırıldı.
+ * Kan kırmızısı (#cc0000) siyahta 3.6:1: çizgi, nokta, ışık ve büyük metinde kullanılır;
+ * küçük metin her zaman chalk/mist/fog tonlarındadır. 3D sahne de vurgu rengini buradan okur.
  */
 @theme {
-  --color-void: #050507;
-  --color-carbon: #0b0c10;
-  --color-graphite: #13151a;
-  --color-steel: #262a32;
-  --color-fog: #8a919c;
-  --color-chalk: #eceef1;
-  --color-neon: #1fd6ff;
-  --color-live: #39ff88;
+  --color-void: #000000;
+  --color-carbon: #111111;
+  --color-graphite: #181818;
+  --color-steel: #262626;
+  --color-fog: #8c8c8c;
+  --color-mist: #b4b4b4;
+  --color-chalk: #f2f2f2;
+  --color-accent: #cc0000;
+  --color-live: #34e07a;
 
   --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
 
   --animate-blink: blink 1.6s ease-in-out infinite;
-  --animate-scroll-cue: scroll-cue 2.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  --animate-scroll-cue: scroll-cue 2.4s cubic-bezier(0.65, 0, 0.35, 1) infinite;
 
   @keyframes blink {
     0%,
@@ -27,7 +30,7 @@
       opacity: 1;
     }
     50% {
-      opacity: 0.3;
+      opacity: 0.35;
     }
   }
 
@@ -52,8 +55,9 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-jetbrains), ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-instrument), ui-serif, Georgia, serif;
 }
 
 @layer base {
@@ -61,27 +65,42 @@
     background-color: var(--color-void);
     color: var(--color-chalk);
     color-scheme: dark;
+    accent-color: var(--color-accent);
+    caret-color: var(--color-accent);
+    -webkit-tap-highlight-color: transparent;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
   body {
     font-family: var(--font-sans);
+    font-weight: 400;
     overflow-x: clip;
   }
 
   ::selection {
-    background-color: var(--color-neon);
-    color: var(--color-void);
+    background-color: var(--color-accent);
+    color: var(--color-chalk);
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-neon);
+    outline: 1px solid var(--color-accent);
     outline-offset: 4px;
   }
 
+  /* Chrome/Safari otomatik doldurmada alanı açık maviye boyar — siyahta tut. */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  textarea:-webkit-autofill {
+    -webkit-text-fill-color: var(--color-chalk);
+    -webkit-box-shadow: 0 0 0 1000px var(--color-void) inset;
+    transition: background-color 9999s ease-out 0s;
+  }
+
   /*
-   * Intro elemanları JS gelene kadar gizli kalır; GSAP devraldığında görünür yapar.
+   * Giriş elemanları JS gelene kadar gizli kalır; GSAP devraldığında görünür yapar.
    * JS hiç çalışmazsa 3 sn sonra CSS kendisi açar — sayfa asla boş kalmaz.
    */
   [data-intro] {
@@ -118,36 +137,41 @@
   }
 }
 
-/* Brutalist başlık: Archivo'nun genişlik ekseni 62'ye (ExtraCondensed) çekilir. */
+/* Maskülen başlık: Archivo'nun genişlik ekseni sıkıştırılır, ağırlık yüksek. Boyutu her yerde ölçülü. */
 @utility type-display {
-  font-family: var(--font-sans);
-  font-weight: 800;
-  font-variation-settings: "wdth" 62;
-  text-transform: uppercase;
-  line-height: 0.86;
-  letter-spacing: -0.005em;
-}
-
-/* Geniş kesim — buton ve kısa vurgular için. */
-@utility type-wide {
+  font-family: var(--font-display);
   font-weight: 700;
-  font-variation-settings: "wdth" 125;
+  font-variation-settings: "wdth" 72;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  line-height: 0.95;
+  letter-spacing: 0.01em;
 }
 
-/* HUD etiketi. */
+/* Zarif vurgu: tek kelimelik italik serif. */
+@utility type-serif {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: -0.01em;
+}
+
+/* Küçük etiket: geniş aralıklı, büyük harf. */
 @utility type-label {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 0.6875rem;
-  line-height: 1.3;
-  letter-spacing: 0.16em;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0.28em;
   text-transform: uppercase;
 }
 
-@utility text-outline {
-  color: transparent;
-  -webkit-text-stroke: 1.5px var(--color-chalk);
+/* İnce, okunur paragraf. */
+@utility type-body {
+  font-family: var(--font-sans);
+  font-weight: 300;
+  line-height: 1.8;
+  color: var(--color-mist);
 }
 
 /*
@@ -161,14 +185,40 @@
   margin-block: -0.16em -0.1em;
 }
 
+/* Cam yüzey: header, mobil menü, rozetler. */
+@utility glass {
+  background-color: rgb(12 12 12 / 0.55);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid rgb(255 255 255 / 0.07);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.05),
+    0 20px 60px -30px rgb(0 0 0 / 0.9);
+}
+
+/* Kırmızı neon ışıma (çizgi ve noktalar için). */
+@utility neon {
+  background-color: var(--color-accent);
+  box-shadow:
+    0 0 4px 0 rgb(255 40 40 / 0.9),
+    0 0 14px 1px rgb(204 0 0 / 0.65),
+    0 0 32px 2px rgb(204 0 0 / 0.35);
+}
+
+/* Yatay kenarlarda siyaha erime (kayan şeritler). */
+@utility fade-x {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent);
+}
+
 @layer components {
   /* Sinematik film greni — statik, GPU'yu yormaz. */
   .grain {
     position: fixed;
     inset: 0;
-    z-index: 1;
+    z-index: 60;
     pointer-events: none;
-    opacity: 0.07;
+    opacity: 0.06;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
 }

@@ -1,17 +1,22 @@
-import { Footer } from "@/components/Footer";
-import { Gallery } from "@/components/Gallery";
-import { Header } from "@/components/Header";
+import { Equipment } from "@/components/Equipment";
+import { GalleryTeaser } from "@/components/GalleryTeaser";
 import { Hero } from "@/components/Hero";
-import { InfoSection } from "@/components/InfoSection";
-import { SmoothScroll } from "@/components/SmoothScroll";
+import { LoadTheBar } from "@/components/LoadTheBar";
+import { Pulse } from "@/components/Pulse";
+import { Testimonials } from "@/components/Testimonials";
 import { SceneCanvas } from "@/components/three/SceneCanvas";
 import { site } from "@/lib/site";
+import { siteUrl } from "@/lib/siteUrl";
 
 // Google'ın işletmeyi doğru tanıması için yapılandırılmış veri (schema.org).
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "ExerciseGym",
   name: site.name,
+  url: siteUrl,
+  logo: `${siteUrl}/images/logo.png`,
+  image: `${siteUrl}/images/galeri-1.jpg`,
+  sameAs: [site.instagram.href],
   telephone: "+90 538 616 60 99",
   address: {
     "@type": "PostalAddress",
@@ -33,24 +38,32 @@ const jsonLd = {
   ],
 };
 
-export default function Home() {
+/**
+ * Ana Sayfa: Three.js yalnızca burada, içeriğin arkasındaki sabit katmanda.
+ *  · Hero: plakalar, kettlebell, dambıl ve lastik sisin içinde yerçekimsiz süzülür.
+ *  · Barı yükle: plakalar scroll'la sırayla bara takılır, bar kaldırılır.
+ *  · Ekipman: bar sise karışır; kettlebell, dambıl ve lastik sırayla sahneye gelir.
+ *  · Nabız: EKG çizgisi ekranı keser, sis kalp atışıyla atar.
+ *  · Yorumlar sahneyi siyaha kapatır; galeri önizlemesi düz zeminde (sahne çizimi durur).
+ */
+export default function HomePage() {
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
-      <SmoothScroll />
-      {/* Sabit 3D katman: içerik bunun üzerinde akar */}
-      <SceneCanvas />
-      <div aria-hidden className="grain" />
-      <Header />
+      <SceneCanvas watch="sahne" />
       <main className="relative z-10">
-        <Hero />
-        <InfoSection />
-        <Gallery />
+        <div id="sahne">
+          <Hero />
+          <LoadTheBar />
+          <Equipment />
+          <Pulse />
+          <Testimonials />
+        </div>
+        <GalleryTeaser />
       </main>
-      <Footer />
     </>
   );
 }

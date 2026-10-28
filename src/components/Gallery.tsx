@@ -1,154 +1,149 @@
 "use client";
 
 import Image from "next/image";
-import { useRef } from "react";
-import { gsap, useGSAP } from "@/lib/gsap";
-import { gallery, type GalleryItem } from "@/lib/site";
+import { useRef, type CSSProperties } from "react";
+import { MagneticButton } from "@/components/MagneticButton";
+import { gsap, revealDelay, ScrollTrigger, SplitText, useGSAP } from "@/lib/gsap";
+import { directionsUrl, gallery, galleryDetails, type GalleryItem } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
-/**
- * Masaüstünde 3 kolon, her biri farklı hızda kayar (yPercent, kolon yüksekliğine göre):
- * asimetrik, "yerçekimsiz" bir akış. Mobilde kolonlar `contents` olup tek sütuna dökülür.
+/*
+ * Asimetrik dizilim (masaüstü, 12 kolon). Kareler ikişerli satırlar kurar: geniş + dar, sonra
+ * dar + geniş; dar olan aşağı kaydırılır. depth: scroll'da ne kadar hızlı yukarı kaydığı —
+ * büyük kareler yavaş (uzakta), küçük kareler hızlı (yakında). Galeri uzadıkça desen tekrar eder;
+ * dar kutulara dikey, geniş kutulara yatay fotoğraf yakışır (site.ts'teki sıra buna göre).
  */
-const COLUMNS = [
-  { speed: 6, className: "md:mt-28" },
-  { speed: -10, className: "" },
-  { speed: 3, className: "md:mt-52" },
+const FEATURE_LAYOUT = [
+  { className: "md:col-span-8 md:col-start-1", depth: 0.2 },
+  { className: "md:col-span-4 md:col-start-9 md:mt-[24vh]", depth: 0.55 },
+  { className: "md:col-span-4 md:col-start-1 md:mt-[30vh]", depth: 0.5 },
+  { className: "md:col-span-8 md:col-start-5 md:mt-[12vh]", depth: 0.22 },
 ];
 
-const total = String(gallery.length).padStart(2, "0");
+/*
+ * Detay kareleri: üç sütunlu, basamaklı ızgara. Her sütun kendi yüksekliğinde başlar
+ * (translate: satırları itmeden kaydırır) ve kendi hızında kayar.
+ */
+const STRIP_LAYOUT = [
+  { className: "md:translate-y-0", depth: 0.5 },
+  { className: "md:translate-y-[14vh]", depth: 0.85 },
+  { className: "md:translate-y-[5vh]", depth: 0.65 },
+];
 
-/** Fotoğraf gelene kadar gösterilen, bilinçli tasarlanmış yer tutucu. */
-function Placeholder({ n }: { n: string }) {
+/** Hover: kare hafifçe büyür, üstüne çok hafif kan kırmızısı bir ton ve iç ışıma gelir. */
+export function Media({ item, sizes }: { item: GalleryItem; sizes: string }) {
   return (
-    <div className="absolute inset-0 grid place-items-center bg-[repeating-linear-gradient(135deg,transparent_0_14px,rgb(255_255_255/0.025)_14px_15px)]">
-      <div className="text-center">
-        <p className="type-display text-[clamp(3.5rem,7vw,6rem)] text-steel">{n}</p>
-        <p className="type-label mt-3 text-fog">Galeri fotosu {Number(n)}</p>
+    <div className="group relative overflow-hidden bg-carbon" style={{ aspectRatio: `${item.width} / ${item.height}` }}>
+      <div data-inner className="absolute inset-0 scale-[1.14]">
+        <div className="absolute inset-0 transition-transform duration-[1400ms] ease-expo group-hover:scale-[1.07]">
+          {/* Kaynaklar zaten küçük JPEG: yeniden sıkıştırıp kaliteyi düşürmemek için olduğu gibi sunulur. */}
+          <Image
+            src={encodeURI(item.src)}
+            alt={item.alt}
+            fill
+            unoptimized
+            sizes={sizes}
+            className="object-cover brightness-[0.88] grayscale-[25%] transition-[filter] duration-700 group-hover:brightness-100 group-hover:grayscale-0"
+          />
+        </div>
       </div>
-      <span aria-hidden className="absolute top-4 left-4 size-4 border-t border-l border-fog/40" />
-      <span aria-hidden className="absolute right-4 bottom-4 size-4 border-r border-b border-fog/40" />
+      <span
+        aria-hidden
+        className="absolute inset-0 bg-accent opacity-0 mix-blend-multiply transition-opacity duration-700 ease-expo group-hover:opacity-30"
+      />
+      <span
+        aria-hidden
+        className="absolute inset-0 opacity-0 shadow-[inset_0_0_90px_rgb(204_0_0/0.4)] transition-opacity duration-700 group-hover:opacity-100"
+      />
     </div>
   );
 }
 
-function Tile({ item, index }: { item: GalleryItem; index: number }) {
-  const n = String(index + 1).padStart(2, "0");
-
+function Detail({ item, index, depth, className }: { item: GalleryItem; index: number; depth: number; className?: string }) {
   return (
-    <figure
-      data-tile
-      data-index={n}
-      className="group relative overflow-hidden bg-graphite"
-      style={{ aspectRatio: item.aspect, order: index }}
-    >
-      <div data-tile-media className="absolute inset-0 transition-[scale] duration-1000 ease-expo group-hover:scale-[1.06]">
-        {item.src ? (
-          // GALERİ FOTOSU — kaynaklar src/lib/site.ts → gallery dizisinde
-          <Image
-            src={item.src}
-            alt={item.alt}
-            fill
-            sizes="(min-width: 768px) 33vw, 100vw"
-            className="object-cover grayscale-[40%] transition-[filter] duration-700 group-hover:grayscale-0"
-          />
-        ) : (
-          <Placeholder n={n} />
-        )}
+    <figure className={cn("relative", className)}>
+      <div data-depth={depth} className="md:shadow-[0_40px_80px_-30px_rgb(0_0_0/0.95)]">
+        <div data-frame>
+          <Media item={item} sizes="(min-width: 768px) 30vw, 50vw" />
+        </div>
+        <figcaption className="mt-4 flex items-baseline gap-3">
+          <span className="type-serif text-lg text-accent">{String(index).padStart(2, "0")}</span>
+          <span className="type-label text-[0.625rem] text-fog">{item.alt}</span>
+        </figcaption>
       </div>
-      <figcaption className="type-label pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between bg-linear-to-t from-void/80 to-transparent p-4 pt-10">
-        <span className="text-neon">{n}</span>
-        <span className="translate-y-2 text-chalk opacity-0 transition duration-500 ease-expo group-hover:translate-y-0 group-hover:opacity-100">
-          {item.alt}
-        </span>
-      </figcaption>
     </figure>
   );
 }
 
 export function Gallery() {
   const root = useRef<HTMLElement>(null);
-  const cursor = useRef<HTMLDivElement>(null);
+  const total = String(gallery.length + galleryDetails.length).padStart(2, "0");
 
   useGSAP(
-    (_, contextSafe) => {
-      if (!contextSafe) return;
+    () => {
       const q = gsap.utils.selector(root);
+      gsap.set(q("[data-intro]"), { visibility: "visible", animation: "none" });
       const mm = gsap.matchMedia();
 
       mm.add("(prefers-reduced-motion: no-preference)", () => {
-        gsap.from(q("[data-gallery-line]"), {
-          yPercent: 115,
-          duration: 1.2,
-          ease: "expo.out",
-          stagger: 0.1,
-          scrollTrigger: { trigger: root.current, start: "top 75%", once: true },
-        });
+        const title = SplitText.create(q("[data-gallery-title]"), { type: "lines,chars", mask: "lines", aria: "none" });
+        const sub = SplitText.create(q("[data-gallery-sub]"), { type: "chars", aria: "none" });
+        gsap
+          .timeline({ delay: revealDelay() })
+          .from(title.chars, { yPercent: 115, duration: 1.5, ease: "expo.out", stagger: 0.04 }, 0)
+          .from(sub.chars, { autoAlpha: 0, filter: "blur(14px)", x: 12, duration: 1.6, ease: "expo.out", stagger: 0.05 }, 0.35)
+          .from(q("[data-gallery-fade]"), { autoAlpha: 0, y: 18, duration: 1.3, ease: "power3.out", stagger: 0.1 }, 0.6);
 
         // Kare açılışı: perde alttan yukarı açılır, fotoğraf büyükten yerine oturur.
-        for (const tile of q("[data-tile]")) {
-          gsap
-            .timeline({ scrollTrigger: { trigger: tile, start: "top 92%", once: true } })
+        // Tetikleyici ayrı kurulur: timeline'a gömülü tetikleyiciler sayfa geçişinde refresh döngüsünü bozabiliyor.
+        for (const frame of q("[data-frame]")) {
+          const reveal = gsap
+            .timeline({ paused: true })
             .fromTo(
-              tile,
+              frame,
               { clipPath: "inset(100% 0% 0% 0%)" },
-              { clipPath: "inset(0% 0% 0% 0%)", duration: 1.3, ease: "expo.out" },
+              { clipPath: "inset(0% 0% 0% 0%)", duration: 1.5, ease: "expo.out" },
             )
-            .from(tile.querySelector("[data-tile-media]"), { scale: 1.3, duration: 1.6, ease: "expo.out" }, 0);
+            .from(frame.querySelector("img"), { scale: 1.35, duration: 1.9, ease: "expo.out" }, 0);
+          ScrollTrigger.create({ trigger: frame, start: "top 92%", once: true, onEnter: () => reveal.play() });
         }
-      });
 
-      // Asimetrik scroll: kolonlar birbirine göre farklı hızlarda akar.
-      mm.add("(min-width: 768px) and (prefers-reduced-motion: no-preference)", () => {
-        for (const column of q("[data-col]")) {
-          const speed = Number(column.dataset.speed);
+        // Çerçevenin içinde fotoğraf ters yöne kayar: pencereden bakıyormuş gibi derinlik.
+        for (const inner of q("[data-inner]")) {
           gsap.fromTo(
-            column,
-            { yPercent: speed },
+            inner,
+            { yPercent: -6 },
             {
-              yPercent: -speed,
+              yPercent: 6,
               ease: "none",
-              scrollTrigger: { trigger: root.current, start: "top bottom", end: "bottom top", scrub: true },
+              scrollTrigger: { trigger: inner.parentElement, start: "top bottom", end: "bottom top", scrub: true },
             },
           );
         }
       });
 
-      // İmleci takip eden sayaç halkası (yalnızca fareli cihazlar).
-      mm.add("(hover: hover) and (pointer: fine)", () => {
-        const section = root.current!;
-        const ring = cursor.current!;
-        const label = ring.querySelector("span")!;
-        const tiles = q("[data-tile]") as HTMLElement[];
-
-        gsap.set(ring, { xPercent: -50, yPercent: -50, scale: 0, autoAlpha: 0 });
-        const xTo = gsap.quickTo(ring, "x", { duration: 0.5, ease: "power3.out" });
-        const yTo = gsap.quickTo(ring, "y", { duration: 0.5, ease: "power3.out" });
-
-        const move = contextSafe((event: PointerEvent) => {
-          xTo(event.clientX);
-          yTo(event.clientY);
-        });
-        const enter = contextSafe((event: PointerEvent) => {
-          label.textContent = `${(event.currentTarget as HTMLElement).dataset.index} / ${total}`;
-          gsap.to(ring, { scale: 1, autoAlpha: 1, duration: 0.5, ease: "expo.out", overwrite: "auto" });
-        });
-        const leave = contextSafe(() => {
-          gsap.to(ring, { scale: 0, autoAlpha: 0, duration: 0.35, ease: "power3.in", overwrite: "auto" });
-        });
-
-        section.addEventListener("pointermove", move);
-        for (const tile of tiles) {
-          tile.addEventListener("pointerenter", enter);
-          tile.addEventListener("pointerleave", leave);
+      // Asimetrik parallax: her kare kendi hızında yukarı kayar. Tetikleyici sabit dış kutu, hareket eden iç kutu.
+      mm.add("(min-width: 768px) and (prefers-reduced-motion: no-preference)", () => {
+        for (const layer of q("[data-depth]")) {
+          const depth = Number(layer.dataset.depth);
+          if (!depth) continue;
+          const travel = () => window.innerHeight * 0.22 * depth;
+          gsap.fromTo(
+            layer,
+            { y: travel },
+            {
+              y: () => -travel(),
+              ease: "none",
+              scrollTrigger: {
+                trigger: layer.parentElement,
+                start: "top bottom",
+                end: "bottom top",
+                scrub: true,
+                invalidateOnRefresh: true,
+              },
+            },
+          );
         }
-        return () => {
-          section.removeEventListener("pointermove", move);
-          for (const tile of tiles) {
-            tile.removeEventListener("pointerenter", enter);
-            tile.removeEventListener("pointerleave", leave);
-          }
-        };
       });
     },
     { scope: root },
@@ -156,52 +151,84 @@ export function Gallery() {
 
   return (
     <section
-      id="galeri"
       ref={root}
       aria-labelledby="galeri-baslik"
-      className="relative px-4 pt-24 pb-32 md:px-8 md:pt-28 md:pb-44 xl:px-12"
+      className="mx-auto max-w-[1400px] px-6 pt-40 pb-32 md:px-10 md:pt-52 md:pb-48"
     >
-      <div className="mb-16 flex flex-wrap items-end justify-between gap-6 md:mb-24">
+      <div className="flex flex-wrap items-end justify-between gap-10">
         <div>
-          <p className="type-label text-neon">(03) — Galeri</p>
-          <h2 id="galeri-baslik" className="type-display mt-6 text-[clamp(3.6rem,8.4vw,9rem)]">
-            <span className="line-mask">
-              <span data-gallery-line className="block">
-                İçeriden
-              </span>
+          <p data-intro data-gallery-fade className="type-label flex items-center gap-4 text-mist">
+            <span aria-hidden className="neon h-px w-8" />
+            Galeri · {total} kare
+          </p>
+          <h1
+            id="galeri-baslik"
+            data-intro
+            aria-label="Salondan kareler."
+            className="mt-6 text-[clamp(2.8rem,6.6vw,6rem)] leading-[0.95]"
+          >
+            <span aria-hidden data-gallery-title className="type-display block tracking-[0.03em]">
+              Salondan
             </span>
-            <span className="line-mask">
-              <span data-gallery-line className="block text-outline">
-                kareler
-              </span>
+            <span aria-hidden data-gallery-sub className="type-serif block text-[1.08em] text-accent">
+              kareler.
             </span>
-          </h2>
+          </h1>
         </div>
-        <p className="type-label max-w-[16rem] text-fog">
-          {total} kare
-          <span className="hidden [@media(hover:hover)]:inline"> — imleci üzerlerinde gezdir.</span>
+        <p data-intro data-gallery-fade className="type-body max-w-xs text-[15px]">
+          Demirin sesi, kırmızı ışık, gece yarısı setleri. Aşağı indikçe salon seninle birlikte nefes alır.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:items-start md:gap-6">
-        {COLUMNS.map((column, c) => (
-          <div
-            key={c}
-            data-col
-            data-speed={column.speed}
-            className={cn("contents md:flex md:flex-col md:gap-6", column.className)}
-          >
-            {gallery.map((item, i) => (i % COLUMNS.length === c ? <Tile key={i} item={item} index={i} /> : null))}
-          </div>
-        ))}
+      <div className="mt-24 md:mt-36">
+        <div className="grid grid-cols-1 gap-y-20 md:grid-cols-12 md:gap-x-8 md:gap-y-0">
+          {gallery.map((item, i) => {
+            const layout = FEATURE_LAYOUT[i % FEATURE_LAYOUT.length];
+            // İkişerli satırlar: (0,1) aynı satırda, (2,3) bir sonrakinde. Mobilde tek sütun, satır serbest.
+            const row = Math.floor(i / 4) * 2 + (i % 4 < 2 ? 1 : 2);
+            return (
+              <figure
+                key={item.src}
+                className={cn("relative md:[grid-row:var(--row)]", layout.className)}
+                style={{ "--row": row } as CSSProperties}
+              >
+                <div data-depth={layout.depth}>
+                  <div data-frame>
+                    <Media item={item} sizes="(min-width: 768px) 66vw, 100vw" />
+                  </div>
+                  <figcaption className="mt-5 flex items-baseline gap-4">
+                    <span className="type-serif text-xl text-accent">{String(i + 1).padStart(2, "0")}</span>
+                    <span className="type-label text-fog">{item.alt}</span>
+                  </figcaption>
+                </div>
+              </figure>
+            );
+          })}
+        </div>
+
+        <div className="mt-24 grid grid-cols-2 gap-x-4 gap-y-12 md:mt-[22vh] md:grid-cols-3 md:items-start md:gap-x-10 md:gap-y-[16vh] md:pb-[14vh]">
+          {galleryDetails.map((item, i) => {
+            const layout = STRIP_LAYOUT[i % STRIP_LAYOUT.length];
+            return (
+              <Detail
+                key={item.src}
+                item={item}
+                index={gallery.length + i + 1}
+                depth={layout.depth}
+                className={layout.className}
+              />
+            );
+          })}
+        </div>
       </div>
 
-      <div
-        ref={cursor}
-        aria-hidden
-        className="pointer-events-none invisible fixed top-0 left-0 z-40 grid size-24 place-items-center rounded-full border border-neon/70 bg-void/50 backdrop-blur-sm"
-      >
-        <span className="type-label text-chalk" />
+      <div className="mt-32 flex flex-wrap items-center justify-between gap-10 border-t border-white/10 pt-12 md:mt-44">
+        <p className="text-[clamp(1.5rem,2.4vw,2.1rem)] leading-snug font-light text-chalk">
+          Kareler yetmez. <span className="type-serif text-accent">Gel, kendin gör.</span>
+        </p>
+        <MagneticButton href={directionsUrl} external>
+          Yol tarifi al
+        </MagneticButton>
       </div>
     </section>
   );

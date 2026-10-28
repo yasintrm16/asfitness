@@ -1,11 +1,14 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, type ReactNode } from "react";
 import { gsap, useGSAP } from "@/lib/gsap";
 
 type MagneticButtonProps = {
   href: string;
   children: ReactNode;
+  /** Yeni sekmede açılan dış bağlantı (ör. Google Haritalar). */
+  external?: boolean;
 };
 
 /**
@@ -13,7 +16,8 @@ type MagneticButtonProps = {
  * Dış bölge (zone) çekim alanını butondan biraz büyük tutar; buton ve etiketi
  * farklı oranlarda hareket ederek derinlik hissi verir.
  */
-export function MagneticButton({ href, children }: MagneticButtonProps) {
+export function MagneticButton({ href, children, external }: MagneticButtonProps) {
+  const Anchor = external ? "a" : Link;
   const zone = useRef<HTMLDivElement>(null);
 
   useGSAP(
@@ -60,30 +64,30 @@ export function MagneticButton({ href, children }: MagneticButtonProps) {
 
   return (
     <div ref={zone} className="-m-6 inline-block p-6">
-      <a
+      <Anchor
         data-magnetic
         href={href}
-        className="group relative inline-flex h-16 items-center gap-4 overflow-hidden rounded-full border border-neon/60 pl-8 pr-3 text-chalk shadow-[0_0_40px_-12px_var(--color-neon)] md:h-[4.5rem] md:pl-10"
+        {...(external && { target: "_blank", rel: "noopener noreferrer" })}
+        className="group relative inline-flex h-14 items-center gap-5 overflow-hidden rounded-full border border-white/15 pr-2 pl-7 text-chalk md:h-16 md:pl-8"
       >
-        {/* Hover'da alttan dolan neon zemin */}
+        {/* Hover'da alttan dolan kan kırmızısı zemin */}
         <span
           aria-hidden
-          className="absolute inset-0 translate-y-full rounded-full bg-neon transition-transform duration-500 ease-expo group-hover:translate-y-0"
+          className="absolute inset-0 translate-y-full rounded-full bg-accent transition-transform duration-700 ease-expo group-hover:translate-y-0"
         />
-        <span data-magnetic-label className="relative flex items-center gap-4">
-          <span className="type-wide text-sm transition-colors duration-500 group-hover:text-void md:text-base">
-            {children}
-          </span>
+        <span data-magnetic-label className="relative flex items-center gap-5">
+          <span className="type-label tracking-[0.24em]">{children}</span>
           <span
             aria-hidden
-            className="grid size-10 place-items-center rounded-full bg-neon text-void transition-colors duration-500 group-hover:bg-void group-hover:text-neon md:size-12"
+            className="grid size-10 place-items-center rounded-full bg-accent text-chalk shadow-[0_0_24px_-4px_var(--color-accent)] transition-colors duration-500 group-hover:bg-void md:size-12"
           >
-            <svg viewBox="0 0 24 24" className="size-5 -rotate-45" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg viewBox="0 0 24 24" className="size-4 -rotate-45" fill="none" stroke="currentColor" strokeWidth="1.75">
               <path d="M5 12h14M13 6l6 6-6 6" />
             </svg>
           </span>
         </span>
-      </a>
+        {external && <span className="sr-only">(yeni sekmede açılır)</span>}
+      </Anchor>
     </div>
   );
 }
