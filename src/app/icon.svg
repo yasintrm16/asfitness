@@ -1,0 +1,7 @@
+<!-- Yer tutucu favicon. Gerçek logo gelince bu dosyayı onunla değiştir. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#050507"/>
+  <circle cx="32" cy="32" r="24" fill="none" stroke="#eceef1" stroke-width="3"/>
+  <circle cx="32" cy="32" r="18.5" fill="none" stroke="#1fd6ff" stroke-width="2"/>
+  <text x="32" y="38.2" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-weight="700" font-size="17" fill="#eceef1">AS</text>
+</svg>
